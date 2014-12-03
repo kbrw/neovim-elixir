@@ -15,7 +15,7 @@ defmodule Neovim.Mixfile do
   end
 
   defp deps do
-    [{:procket, github: "msantos/procket"},
+    [{:message_pack, "~> 0.1.4"},
      {:procket, github: "msantos/procket"}]
   end
 end
