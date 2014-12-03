@@ -99,7 +99,7 @@ defmodule Neovim.Link do
   end
 
   defp parse_ip(ip) do
-    case :inet.parse_address(ip) do
+    case :inet.parse_address('#{ip}') do
       {:ok,{ip1,ip2,ip3,ip4}}->
         {:ipv4,<<ip1,ip2,ip3,ip4>>}
       {:ok,{ip1,ip2,ip3,ip4,ip5,ip6,ip7,ip8}}->
@@ -111,11 +111,11 @@ defmodule Neovim.Link do
   defp open({:tcp,ip,port}), do:
     open({parse_ip(ip),port})
   defp open({{:ipv4,ip},port}) do
-    sockaddr = Socket.sockaddr_common(2,4)<> <<port::16>> <> ip
+    sockaddr = Socket.sockaddr_common(2,6)<> <<port::16,ip::binary,0::64>>
     open({:sock,2,sockaddr})
   end
   defp open({{:ipv6,ip},port}) do
-    sockaddr = Socket.sockaddr_common(30,16)<> <<port::16>> <> <<0::32,ip::binary,0::32>>
+    sockaddr = Socket.sockaddr_common(30,26)<> <<port::16>> <> <<0::32,ip::binary,0::32>>
     open({:sock,30,sockaddr})
   end
   defp open({:unix,sockpath}) do
@@ -125,7 +125,9 @@ defmodule Neovim.Link do
   end
   defp open({:sock,family,sockaddr}) do
     {:ok,socket}= Socket.socket(family,1,0)
-    :ok = Socket.connect(socket,sockaddr)
+    case Socket.connect(socket,sockaddr) do
+      r when r in [:ok,{:error,:einprogress}]->:ok
+    end
     {socket,socket}
   end
 end
