@@ -25,12 +25,17 @@ NVim.vim_del_current_line
 
 ## Talk from Vim to Elixir ##
 
-You can call any elixir function from vim using rpcrequest 
+You can call any elixir function from vim using rpcrequest, function
+name is an anonymous function body, arguments are then applied to
+this function. 
 
 ```
-:let result = rpcrequest(chan,"String.upcase","toto")
+:let result = rpcrequest(chan,"a,b->a+b",3,2)
 :echo result
-"TOTO"
+5
+:let result = rpcrequest(chan,"->3 + 3")
+:echo result
+6
 ```
 
 ## React to Vim events ##

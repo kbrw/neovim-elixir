@@ -74,11 +74,12 @@ defmodule NVim.Link do
           {reply_to,reqs} -> GenServer.reply(reply_to,reply); reqs
         end
         {:noreply,%{state|buf: tail, reqs: reqs}}
-      {:ok,{[@msg_req,req_id,modfun,args],tail}}->
-        {modparts,[fun]} = modfun |> String.split(".") |> Enum.split(-1)
+      {:ok,{[@msg_req,req_id,fun,args],tail}}->
         spawn fn->
-          res = try do apply(Module.concat(modparts),:"#{fun}",args)
-                    catch _, _ -> {:error,:exception} end
+          res = try do 
+            {fun,_} = Code.eval_string("fn "<> fun <>" end")
+            apply fun, args
+          catch _, _ -> {:error,:exception} end
           Port.command port, MessagePack.pack!([@msg_resp,req_id,nil,res])
         end
         {:noreply,%{state|buf: tail}}
