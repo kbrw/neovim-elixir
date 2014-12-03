@@ -1,0 +1,5 @@
+%{"message_pack": {:hex, :message_pack, "0.1.4"},
+  "msgpax": {:hex, :msgpax, "0.3.0"},
+  "procket": {:git, "git://github.com/msantos/procket.git", "eddc2d965f9b14abd06677cb2d1cf9c2ee9759ee", []},
+  "uds_dist": {:git, "git://github.com/project-fifo/uds_dist.git", "e21dc7c8b8cf213f2bca40ef7d022fedf48ca018", []},
+  "unixdom_drv": {:git, "git://github.com/mikma/unixdom_drv.git", "861e2afb174b4c9c538b98a201fc4b836add8eab", []}}
