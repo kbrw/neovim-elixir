@@ -1,7 +1,7 @@
-defmodule Neovim.App do
+defmodule NVim.App do
   use Application
   def start(_type, _args), do: 
-    Neovim.App.Sup.start_link
+    NVim.App.Sup.start_link
 
   defmodule Sup do
     use Supervisor
@@ -10,24 +10,24 @@ defmodule Neovim.App do
 
     def init([]) do
       supervise([
-        worker(Neovim.Link,[Application.get_env(:neovim,:link,:stdio)]),
-        worker(Neovim.Events,[])
+        worker(NVim.Link,[Application.get_env(:neovim,:link,:stdio)]),
+        worker(NVim.Events,[])
       ], strategy: :one_for_all)
     end
   end
 end
 
-defmodule Neovim.Events do
+defmodule NVim.Events do
   def start_link, do:
     GenEvent.start_link(name: __MODULE__)
 end
 
-defmodule Neovim.Logger do
+defmodule NVim.Logger do
   use GenEvent
 
   def handle_event({level,_leader,{Logger,msg,_ts,_md}},state) do
     clean_msg = msg |> to_string |> String.split("\n") |> hd |> String.replace("\"","\\\"")
-    Neovim.vim_command ~s/echo "#{level}: #{clean_msg}"/
+    NVim.vim_command ~s/echo "#{level}: #{clean_msg}"/
     {:ok,state}
   catch _, _ -> {:ok,state}
   end
@@ -37,7 +37,7 @@ defmodule Neovim.Logger do
 end
 
 
-defmodule Neovim.Link do
+defmodule NVim.Link do
   use GenServer
   alias :procket, as: Socket
   @msg_req 0
@@ -65,7 +65,7 @@ defmodule Neovim.Link do
     data = buf<>data
     case MessagePack.unpack_once(data) do
       {:ok,{[@msg_notify,name,params],tail}}->
-        GenEvent.notify Neovim.Events, {:"#{name}",params}
+        GenEvent.notify NVim.Events, {:"#{name}",params}
         {:noreply,%{state|buf: tail}}
       {:ok,{[@msg_resp,req_id,err,resp],tail}}->
         reply = if err, do: {:error,err}, else: {:ok, resp}

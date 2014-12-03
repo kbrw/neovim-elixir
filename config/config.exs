@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :logger,
-  backends: [Neovim.Logger],
+  backends: [NVim.Logger],
   level: :debug,
   handle_otp_reports: true,
   handle_sasl_reports: true

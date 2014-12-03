@@ -1,4 +1,4 @@
-defmodule Neovim.Mixfile do
+defmodule NVim.Mixfile do
   use Mix.Project
 
   def project do
@@ -10,7 +10,7 @@ defmodule Neovim.Mixfile do
 
   def application do
     [applications: [:logger],
-     mod: { Neovim.App, [] },
+     mod: { NVim.App, [] },
      env: []]
   end
 
