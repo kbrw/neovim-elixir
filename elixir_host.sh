@@ -1,1 +1,1 @@
-MIX_ENV=host elixir --no-halt --name "$1@127.0.0.1" --erl "-noinput" -S mix
+elixir -S mix neovim --name "$1@127.0.0.1" --erl "-noinput"

@@ -62,3 +62,54 @@ Then test it sending from event in vim : `:call rpcnotify(chan,"an_event","arg1"
 
 The `NVim.Logger` logger backend take the first line of a log and `echo` it
 to vim.
+
+## Host plugin ##
+
+**TODO**
+
+first : "Mix archive install https://neovim.elixir/neovimelixir"
+
+host plugin works only with a "mix neovim host"
+(maybe iex -S mix attach "/mon/socket")
+
+```
+
+RegisterHost(xx,factory)
+factory : channel = rpcstart "mix neovim host"
+
+command MyPlug.toto
+
+defmodule MyPlug do
+  use NVim
+  
+  defcommand toto(truc,state) do
+    {res,state} 
+  end
+
+  defcommand toto(truc,col), async: true, col: "col('.')" do
+    # do smthing
+    state
+  end
+
+  defautocmd titi(truc,state) do
+
+  end
+
+  ## generated
+  def spec, do: []
+end
+MyPlug
+the port server maintains the map {"plugin_path"=>ModuleName}
+
+request("spec","plg_path")
+request("/path/to/plug.exs:command:toto",[arg1,arg2],[line1,line2],[x,a]
+request("/path/to/plug.exs:function:toto",[arg1,arg2],evaled)
+request("/path/to/plug.exs:autocmd:toto:**.c",[arg1,arg2],evaled)
+-> get "/path/to/plug.exs" => MyPlug
+-> check whereis MyPlug, if died, compile
+  "/path/to/plug.ex", then GenServer.start_link(MyPlug)
+-> if msgpack-rpc notify -> cast MyPlug
+-> if msgpack-rpc request -> call MyPlug send resp
+
+eval: {col: "col('.')"}
+```

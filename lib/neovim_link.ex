@@ -36,9 +36,9 @@ defmodule NVim.Logger do
     {:ok,:ok,state}
 end
 
-
 defmodule NVim.Link do
   use GenServer
+  if Mix.env==:archive, do: alias(NVimWrap.MessagePack, as: MessagePack)
   alias :procket, as: Socket
   @msg_req 0
   @msg_resp 1
