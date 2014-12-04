@@ -15,7 +15,7 @@ defmodule NVim.Mixfile do
   end
 
   defp deps do
-    [{:message_pack, "~> 0.1.4"},
+    [{:message_pack, github: "awetzel/msgpack-elixir", branch: "unpack_map_as_map"},
      {:procket, github: "msantos/procket"}]
   end
 end
