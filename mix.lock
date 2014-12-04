@@ -1,4 +1,4 @@
-%{"message_pack": {:hex, :message_pack, "0.1.4"},
+%{"message_pack": {:git, "git://github.com/awetzel/msgpack-elixir.git", "9fa53be7456274d5ac4e0e2dfb3587a8e53b72a2", [branch: "unpack_map_as_map"]},
   "msgpax": {:hex, :msgpax, "0.3.0"},
   "procket": {:git, "git://github.com/msantos/procket.git", "eddc2d965f9b14abd06677cb2d1cf9c2ee9759ee", []},
   "uds_dist": {:git, "git://github.com/project-fifo/uds_dist.git", "e21dc7c8b8cf213f2bca40ef7d022fedf48ca018", []},
