@@ -14,25 +14,5 @@ defmodule Mix.Tasks.Neovim.Host do
           Mix.raise "Could not start application #{app}: " <>
             Application.format_error(reason)
     end
-    
-  end
-end
-
-defmodule Mix.Tasks.Neovim.WrapMsgpack do
-  use Mix.Task
-
-  def run(_) do
-    wrapper = Path.wildcard("deps/message_pack/lib/**/*.ex")
-    |> Enum.map(&File.read!/1)
-    |> Enum.join("\n")
-    wrapper = """
-    defmodule NVimWrap do
-    alias NVimWrap.MessagePack, as: MessagePack
-    alias NVimWrap.MessagePack.Ext, as: MessagePack.Ext
-    alias NVimWrap.MessagePack.Packer, as: MessagePack.Packer
-    alias NVimWrap.MessagePack.Unpacker, as: MessagePack.Unpacker
-
-    """<>wrapper<>"\nend"
-    File.write("lib/msgpack_wrapper.ex")
   end
 end

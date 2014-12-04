@@ -38,7 +38,6 @@ end
 
 defmodule NVim.Link do
   use GenServer
-  if Mix.env==:archive, do: alias(NVimWrap.MessagePack, as: MessagePack)
   alias :procket, as: Socket
   @msg_req 0
   @msg_resp 1
@@ -57,13 +56,13 @@ defmodule NVim.Link do
 
   def handle_call({func,args},from,%{port: port}=state) do
     req_id = state.req_id+1
-    Port.command port, MessagePack.pack!([@msg_req,req_id,func,args])
+    Port.command port, NVimWrap.MessagePack.pack!([@msg_req,req_id,func,args])
     {:noreply,%{state|req_id: req_id, reqs: Dict.put(state.reqs,req_id,from)}}
   end
 
   def handle_info({port,{:data,data}},%{reqs: reqs,buf: buf}=state) do
     data = buf<>data
-    case MessagePack.unpack_once(data) do
+    case NVimWrap.MessagePack.unpack_once(data) do
       {:ok,{[@msg_notify,name,params],tail}}->
         GenEvent.notify NVim.Events, {:"#{name}",params}
         {:noreply,%{state|buf: tail}}
@@ -80,7 +79,7 @@ defmodule NVim.Link do
             {fun,_} = Code.eval_string("fn "<> fun <>" end")
             apply fun, args
           catch _, _ -> {:error,:exception} end
-          Port.command port, MessagePack.pack!([@msg_resp,req_id,nil,res])
+          Port.command port, NVimWrap.MessagePack.pack!([@msg_resp,req_id,nil,res])
         end
         {:noreply,%{state|buf: tail}}
       {:error,_}->{:noreply,%{state|buf: data}}
