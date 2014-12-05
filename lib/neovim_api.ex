@@ -8,7 +8,7 @@ defmodule NVim.Api do
   def from_cmd do
     case System.cmd("nvim",["--api-info"]) do
       {res,0} -> 
-        {:ok,spec} = NVimWrap.MessagePack.unpack res
+        {:ok,spec} = MessagePack.unpack res
         generate_neovim(spec)
       _ -> :ok
     end

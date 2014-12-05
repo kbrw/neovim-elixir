@@ -1,6 +1,0 @@
-:let chan=rpcstart("./elixir_host.sh",["vim1"])
-:call rpcnotify(chan,"an_event","arg1",3)
-:let result = rpcrequest(chan,"a,b->a+b",3,2)
-:let result = rpcrequest(chan,"-> 3 + 4")
-:echo rpcrequest(1,"->node")
-:let result = rpcrequest(1,"s->{_,res,_}='#{s}'|>Enum.reverse|>IEx.Autocomplete.expand ; to_string(res)","Kern")
