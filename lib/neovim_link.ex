@@ -11,15 +11,10 @@ defmodule NVim.App do
     def init([]) do
       supervise([
         worker(NVim.Link,[Application.get_env(:neovim,:link,:stdio)]),
-        worker(NVim.Events,[])
+        worker(NVim.Plugin.Sup,[])
       ], strategy: :one_for_all)
     end
   end
-end
-
-defmodule NVim.Events do
-  def start_link, do:
-    GenEvent.start_link(name: __MODULE__)
 end
 
 defmodule NVim.Logger do
@@ -38,6 +33,7 @@ end
 
 defmodule NVim.Link do
   use GenServer
+  require Logger
   alias :procket, as: Socket
   @msg_req 0
   @msg_resp 1
@@ -51,7 +47,7 @@ defmodule NVim.Link do
     {fdin,fdout} = open(link_spec)
     port = Port.open({:fd,fdin,fdout}, [:stream,:binary])
     Process.link(port)
-    {:ok,%{link_spec: link_spec, port: port, buf: "", req_id: 0, reqs: HashDict.new}}
+    {:ok,%{link_spec: link_spec, port: port, buf: "", req_id: 0, reqs: HashDict.new, plugins: NVim.Host.init_plugins}}
   end
 
   def handle_call({func,args},from,%{port: port}=state) do
@@ -59,13 +55,21 @@ defmodule NVim.Link do
     Port.command port, MessagePack.pack!([@msg_req,req_id,func,args])
     {:noreply,%{state|req_id: req_id, reqs: Dict.put(state.reqs,req_id,from)}}
   end
+  def handle_cast({:register_plugins,plugins},state) do
+    {:noreply,%{state|plugins: plugins}}
+  end
+
+  defp reply(port,id,{:ok,res}) do
+    Port.command port, MessagePack.pack!([@msg_resp,id,nil,res])
+  end
+  defp reply(port,id,{:error,err}) do
+    Port.command port, MessagePack.pack!([@msg_resp,id,err,nil])
+  end
+  defp reply(port,id,res), do: reply(port,id,{:ok,res})
 
   def handle_info({port,{:data,data}},%{reqs: reqs,buf: buf}=state) do
     data = buf<>data
     case MessagePack.unpack_once(data) do
-      {:ok,{[@msg_notify,name,params],tail}}->
-        GenEvent.notify NVim.Events, {:"#{name}",params}
-        {:noreply,%{state|buf: tail}}
       {:ok,{[@msg_resp,req_id,err,resp],tail}}->
         reply = if err, do: {:error,err}, else: {:ok, resp}
         reqs = case Dict.pop(reqs,req_id) do
@@ -73,17 +77,39 @@ defmodule NVim.Link do
           {reply_to,reqs} -> GenServer.reply(reply_to,reply); reqs
         end
         {:noreply,%{state|buf: tail, reqs: reqs}}
-      {:ok,{[@msg_req,req_id,fun,args],tail}}->
+      {:ok,{[@msg_req,req_id,method,args],tail}}->
         spawn fn->
-          res = try do 
-            {fun,_} = Code.eval_string("fn "<> fun <>" end")
-            apply fun, args
-          catch _, _ -> {:error,:exception} end
-          Port.command port, MessagePack.pack!([@msg_resp,req_id,nil,res])
+          try do
+            case String.split(method,":") do
+              ["poll"]-> 
+                reply port,req_id, {:ok,"ok"}
+              ["specs"]->
+                {plugin,plugins} = NVim.Host.ensure_plugin(hd(args),state.plugins)
+                reply port,req_id, {:ok,NVim.Host.specs(plugin)}
+                GenServer.cast __MODULE__,{:register_plugins,plugins}
+              [path|methodpath]->
+                {plugin,plugins} = NVim.Host.ensure_plugin(path,state.plugins)
+                GenServer.cast __MODULE__,{:register_plugins,plugins}
+                reply port,req_id, NVim.Host.handle(plugin,methodpath,args)
+            end
+          catch _, r -> 
+            reply port,req_id, {:error,inspect(r)}
+          end
         end
         {:noreply,%{state|buf: tail}}
-      {:error,_}->{:noreply,%{state|buf: data}}
-    end
+      {:ok,{[@msg_notify,method,args],tail}}->
+        [path|methodpath] = String.split(method,":")
+        {plugin,plugins} = NVim.Host.ensure_plugin(path,state.plugins)
+          spawn fn->
+            try do 
+              NVim.Host.handle(plugin,methodpath,args)
+            catch _, r -> 
+              Logger.error "failed to exec autocmd #{hd(methodpath)} : #{inspect r}" 
+            end
+          end
+          {:noreply,%{state|buf: tail,plugins: plugins}}
+          {:error,_}->{:noreply,%{state|buf: data}}
+        end
   end
   def handle_info({:EXIT,port,_},%{port: port,link_spec: :stdio}=state) do
     System.halt(0) # if the port die in stdio mode, it means the link is broken, kill the app
