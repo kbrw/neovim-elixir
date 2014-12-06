@@ -32,9 +32,11 @@ defmodule NVim.Api do
 
           This function can #{if func["deferred"]!=true, do: "not "}be deferred
         """
-        Module.eval_quoted NVim, {:def,[],[{:"#{name}",[],fnparams},[do: quote do
-          GenServer.call NVim.Link, {unquote("#{name}"),unquote(fnparams)}
-        end]]}
+        Module.eval_quoted(NVim, quote do
+          def unquote(:"#{name}")(unquote_splicing(fnparams)) do
+            GenServer.call NVim.Link, {unquote("#{name}"),unquote(fnparams)}
+          end
+        end)
       end
     end
   end

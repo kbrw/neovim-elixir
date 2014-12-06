@@ -141,7 +141,7 @@ defmodule NVim.Link do
     open({:sock,2,sockaddr})
   end
   defp open({{:ipv6,ip},port}) do
-    sockaddr = Socket.sockaddr_common(30,26)<> <<port::16>> <> <<0::32,ip::binary,0::32>>
+    sockaddr = Socket.sockaddr_common(30,26)<> <<port::16,0::32,ip::binary,0::32>>
     open({:sock,30,sockaddr})
   end
   defp open({:unix,sockpath}) do
