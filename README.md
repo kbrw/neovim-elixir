@@ -3,6 +3,14 @@ Elixir host for NVim
 
 # Write your Vim plugin in Elixir : Elixir Host for NVim #
 
+Firstly, to replace your vim with nvim, not so hard :)
+
+```
+git clone https://github.com/neovim/neovim ; cd neovim ; sudo make install
+cp -R ~/.vim ~/.nvim ; cp ~/.vimrc ~/.nvimrc
+alias vim=nvim
+```
+
 ## INSTALL ##
 
 Compile the Elixir Host, then copy the vim-elixir-host directory to `~/.nvim` : 
