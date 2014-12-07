@@ -22,7 +22,7 @@ defmodule NVim.Mixfile do
 
   defp escript, do: [
     emu_args: "-noinput",
-    path: "nvim_elixir_host",
+    path: "vim_dist/tools/nvim_elixir_host",
     main_module: Sleeper
   ]
   
