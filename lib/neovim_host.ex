@@ -1,5 +1,4 @@
 defmodule NVim.Host do
-  require Logger
   def init_plugins, do: HashDict.new
   def ensure_plugin(path,plugins) do
     case plugins[path] do
@@ -16,8 +15,10 @@ defmodule NVim.Host do
 
   def specs(plugin), do: plugin.nvim_specs
 
+  def compose_name([simple_name]), do: simple_name
+  def compose_name(composed_name), do: List.to_tuple(composed_name)
   def handle(plugin,[type|name],args), do:
-    GenServer.call(plugin,{:"#{type}",Enum.join(name),args})
+    GenServer.call(plugin,{:"#{type}",compose_name(name),args})
 end
 
 defmodule NVim.Plugin.Sup do
