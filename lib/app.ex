@@ -16,7 +16,11 @@ defmodule NVim.App do
       ], strategy: :one_for_all)
     end
 
-    def gen_api, do: (NVim.Api.from_instance; :ignore)
+    def gen_api do
+      if Application.get_env(:neovim,:update_api_on_startup,true), do:
+        NVim.Api.from_instance
+      :ignore
+    end
   end
 end
 

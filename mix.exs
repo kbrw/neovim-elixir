@@ -12,7 +12,7 @@ defmodule NVim.Mixfile do
   def application do
     [applications: [:logger,:mix,:eex,:ex_unit,:iex,:procket,:message_pack],
      mod: { NVim.App, [] },
-     env: []]
+     env: [update_api_on_startup: true]]
   end
 
   defp deps do

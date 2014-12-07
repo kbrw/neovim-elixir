@@ -7,6 +7,7 @@ config :logger,
   handle_sasl_reports: true
 
 config :neovim,
+  update_api_on_startup: true,
   link: if(Mix.env==:host, 
           do: :stdio,
           else: {:tcp,"127.0.0.1",6666})
