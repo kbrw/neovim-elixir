@@ -1,115 +1,193 @@
 Elixir host for NVim
-======================
+====================
 
-Bind an elixir application to a neovim instance accoding to the `Application.get_env(:neovim,:link)` config :
+# Write your Vim plugin in Elixir : Elixir Host for NVim #
 
-- `:stdio` : as a host plugin.  in neovim : `:let chan=rpcstart("./elixir_host.sh",["nodename"])`. Then you
-  can connect to the attached elixir shell with `iex --name "toto@127.0.0.1" --remsh "nodename@127.0.0.1"`
-- `{:tcp,"127.0.0.1",4444}` : to a running editor through a TCP socket
-- `{:unix,"/path/to/sock.sock"}` : to a running editor through an unix domain socket
+## INSTALL ##
 
-Execute `:echo $NVIM_LISTEN_ADDRESS` in your instance to find the current address of your instance.
+Compile the Elixir Host, then copy the vim-elixir-host directory to `~/.nvim` : 
 
-## Talk from Elixir to Vim ##
+```
+MIX_ENV=host mix escript.build
+cp -R vim-elixir-host/* ~/.nvim/
+# or with pathogen cp -R vim-elixir-host ~/.nvim/bundle/
+```
 
-The `NVim` module functions and docs are dynamically generated from the
-msgpack functions available at `vim_get_api_info`.
+That's it ! But actually because of a hack ! The folder contains
+`autoload/remote/host.vim` which overrides the one from the
+mainstream runtime to add 5 lines to accept Elixir plugins. This
+is a hack before we integrate the elixir host into the mainstream
+NVim project (need to open an issue and do lobbying).
 
-So you can do for instance : 
+## Write a vim Elixir plugin ##
+
+Before going into a detail, let's see a basic usage example : add
+Elixir autocompletion to vim... in 5 minutes.
+
+```
+mkdir -p ~/.nvim/rplugin/elixir
+vim ~/.nvim/rplugin/elixir/completion.ex
+```
 
 ```elixir
-h NVim.vim_command
-NVim.vim_command ~s/echo "toto"/
-NVim.vim_del_current_line
-```
+defmodule AutoComplete do
+  use NVim.Plugin
 
-## Talk from Vim to Elixir ##
+  deffunc elixir_complete("1",_,%{"line"=>line,"cursor"=>cursor},state), cursor: "col('.')", line: "getline('.')" do
+    cursor = cursor - 1 # because we are in insert mode
+    [tomatch] = Regex.run(~r"[\w\.]*$",String.slice(line,0..cursor-1))
+    cursor - String.length(tomatch)
+  end
+  deffunc elixir_complete(_,base,_,state), cursor: "col('.')", line: "getline('.')" do
+    case (base |> to_char_list |> Enum.reverse |> IEx.Autocomplete.expand) do
+      {:yes,one,alts}-> 
+        Enum.map([one|alts],fn comp->
+          comp = "#{base}#{comp}"
+          %{"word"=>String.replace(comp,~r"/[0-9]+$",""),
+            "abbr"=>comp,
+            "info"=>"take doc from @doc"}
+        end)
+      {:no,_,_}-> [base]
+    end
+  end
 
-You can call any elixir function from vim using rpcrequest, function
-name is an anonymous function body, arguments are then applied to
-this function. 
-
-```
-:let result = rpcrequest(chan,"a,b->a+b",3,2)
-:echo result
-5
-:let result = rpcrequest(chan,"->3 + 3")
-:echo result
-6
-```
-
-## React to Vim events ##
-
-All the message pack notifications are translated into GenEvent events
-`NVim.Events` so you can easyly react to them in your plugin. For instance,
-the following handler will log all the vim events.
-
-```elixir
-defmodule LogEvent do 
-  use GenEvent
-  require Logger
-  def handle_event(ev,s) do
-    Logger.info "event : #{inspect ev}"
-    {:ok,s}
+  defautocmd file_type(state), pattern: "elixir", async: true do
+    {:ok,nil} = NVim.vim_command("filetype plugin on")
+    {:ok,nil} = NVim.vim_command("set omnifunc=ElixirComplete")
+    state
   end
 end
-GenEvent.add_handler NVim.Events, LogEvent, []
 ```
 
-Then test it sending from event in vim : `:call rpcnotify(chan,"an_event","arg1",3)`
+And then open nvim and execute `:UpdateRemotePlugins` to update the plugin database. 
 
-## Elixir logger to vim ##
+That's it, just open an elixir file and "CTRL-X CTRL-O" for completion. 
+
+## Plugin architecture ##
+
+But the integration allows much more things, lets look into
+details : 
+
+- A plugin is an elixir file defining modules in
+  `RUNTIMEPATH/rplugin/elixir`, but only one module must implement
+  the `nvim_specs` function, it is called the _plugin module_
+- The _plugin module_ must implement `child_spec/0` returning the
+  supervisor child specification started on the first plugin call.
+- The supervision tree must launch in it a GenServer registered
+  with the name of the _plugin module_, a vim query will trigger a
+  genserver call `{:function|:autocmd|:command,methodname,args}`
+  to this registered process.
+- The _plugin module_ must implement `nvim_specs/0` returning the
+  specification of available commands, functions, autocmd with
+  their options, as describeb in nvim documentation, in order to
+  define them on the vim side as rpc calls to the host plugin :
+  (`UpdateRemotePlugins`).
+
+The code is self explanatory, so you can look at `host.ex` where
+you can see this architecture :
+
+```elixir
+  def ensure_plugin(path,plugins) do
+    case plugins[path] do
+      nil -> 
+        modules = Code.compile_string(File.read!(path),path)
+        {plugin,_} = Enum.find(modules,fn {mod,_}->
+          function_exported?(mod,:nvim_specs,0)
+        end)
+        {:ok,_} = Supervisor.start_child NVim.Plugin.Sup, plugin.child_spec
+        {plugin,Dict.put(plugins,path,plugin)}
+      plugin -> {plugin,plugins}
+    end
+  end
+  def specs(plugin), do: plugin.nvim_specs
+
+  def handle(plugin,[type|name],args), do:
+    GenServer.call(plugin,{:"#{type}",compose_name(name),args})
+```
+
+## Main plugin module definition facilities ##
+
+`Use NVim.plugin` provides facilities to define the previously described module : 
+
+- `use NVim.plugin` :
+  - define a GenServer (`use GenServer`) with a `start_link`
+    function starting it registered with the _plugin module_ name.
+  - define a default but overridable `child_spec` launching only
+    this GenServer.
+  - define at the end of the module the `nvim_specs` function returning `@specs`
+  - import macros`deffunc`,`defcommand`,`defautocmd` which
+    - adds a nvim specification to `@spec`
+    - defines a `def handle_call` but rearranging parameters and
+      wrapping response to make it easier to understand and makes
+      its definition closer to the corresponding vim definition.
+
+So in the end `deffunc|defcommand|defautocmd` are only `def
+handle_call` so you can pattern match and add guards as you want
+(see the example of the completion function above). You can add
+`handle_info`, `handle_cast` or even additional `handle_call` if
+needed.  You can customize the `child_spec` in order to launch
+dependencies, with the only contraint that the new tree must
+contains the _plugin module_ GenServer.
+
+## Understand deffunc ##
+
+Todo
+
+## Understand defcommand ##
+
+Todo
+
+## Understand defautocmd ##
+
+Todo
+
+## Elixir logs are "echoed" to vim ##
 
 The `NVim.Logger` logger backend take the first line of a log and `echo` it
 to vim.
 
-## Host plugin ##
+# Control a nvim instance from Elixir #
 
-**TODO**
-
-first : "Mix archive install https://neovim.elixir/neovimelixir"
-
-host plugin works only with a "mix neovim host"
-(maybe iex -S mix attach "/mon/socket")
+Connect to a running vim instance using : 
 
 ```
-
-RegisterHost(xx,factory)
-factory : channel = rpcstart "mix neovim host"
-
-command MyPlug.toto
-
-defmodule MyPlug do
-  use NVim
-  
-  defcommand toto(truc,state) do
-    {res,state} 
-  end
-
-  defcommand toto(truc,col), async: true, col: "col('.')" do
-    # do smthing
-    state
-  end
-
-  defautocmd titi(truc,state) do
-
-  end
-
-  ## generated
-  def spec, do: []
-end
-MyPlug
-the port server maintains the map {"plugin_path"=>ModuleName}
-
-request("spec","plg_path")
-request("/path/to/plug.exs:command:toto",[arg1,arg2],[line1,line2],[x,a]
-request("/path/to/plug.exs:function:toto",[arg1,arg2],evaled)
-request("/path/to/plug.exs:autocmd:toto:**.c",[arg1,arg2],evaled)
--> get "/path/to/plug.exs" => MyPlug
--> check whereis MyPlug, if died, compile
-  "/path/to/plug.ex", then GenServer.start_link(MyPlug)
--> if msgpack-rpc notify -> cast MyPlug
--> if msgpack-rpc request -> call MyPlug send resp
-
-eval: {col: "col('.')"}
+iex -S mix nvim.attach "127.0.0.1:7777"
+iex -S mix nvim.attach "[::1]:7777"
+iex -S mix nvim.attach "/path/to/unix/domain/sock"
 ```
+
+The argument is where the socket of your nvim instance lies : to
+find the current listening socket of your nvim instance, just
+read the correct env variable :
+
+```
+"" in vim 
+:echo $NVIM_LISTEN_ADDRESS
+```
+
+By default this socket is a unix domain socket in a random file,
+but you can customize the address at launch (tcp or unix domain socket):
+
+```
+NVIM_LISTEN_ADDRESS="127.0.0.1:7777" nvim
+NVIM_LISTEN_ADDRESS="/tmp/mysock" nvim
+```
+
+## Auto generated API ##
+
+The module `NVim` is automatically generated when you attach to
+vim using `vim_get_api_info`. 
+
+```
+{:ok,current_line} = NVim.vim_get_current_line
+{:ok,current_column} = NVim.vim_eval "col('.')"
+NVim.vim_command "echo 'coucou'"
+```
+
+The help is also automatically generated
+
+```
+h NVim.vim_del_current_line
+```
+
+
