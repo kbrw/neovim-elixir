@@ -10,6 +10,8 @@ defmodule NVim.Plugin do
 
       def start_link(init), do: GenServer.start_link(__MODULE__,init, name: __MODULE__)
       def child_spec, do: worker(__MODULE__,[%{}])
+
+      defoverridable [child_spec: 0]
     end
   end
 
