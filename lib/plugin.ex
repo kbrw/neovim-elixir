@@ -20,11 +20,13 @@ defmodule NVim.Plugin do
   end
 
   def eval_specs(params), do:
-    Enum.filter(params,fn {k,_}-> not k in [:async,:range,:count,:bang,:register,:pattern,:buffer,:bar] end)
+    Enum.filter(params,fn {k,_}-> not k in [:async,:range,:count,:bang,:register,:pattern,:buffer,:bar,:group,:nested] end)
   def command_values_specs(params), do:
     Enum.filter(params,fn {k,_}-> k in [:range,:count,:bang,:register] end)
   def command_other_specs(params), do:
     Enum.filter(params,fn {k,_}-> k in [:buffer,:bar] end)
+  def autocmd_specs(params), do:
+    Enum.filter(params,fn {k,_}-> k in [:group,:nested] end)
 
   def wrap_reply({status,reply,state},_,_) when status in [:ok,:error], do:
     {:reply,{status,reply},state}
@@ -131,6 +133,7 @@ defmodule NVim.Plugin do
                   sync: unquote(if(funcparams[:async], do: 0,else: 1)),
                   opts: %{unquote_splicing(
                       [pattern: pattern]++
+                      Enum.map(autocmd_specs(funcparams),fn {k,v}->{k,wrap_spec_value(k,v)} end) ++
                       if(eval_specs == [],do: [], else: [eval: params_to_eval(eval_specs)])
                     )}
                 }))
