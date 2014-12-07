@@ -11,9 +11,12 @@ defmodule NVim.App do
     def init([]) do
       supervise([
         worker(NVim.Link,[Application.get_env(:neovim,:link,:stdio)]),
-        worker(NVim.Plugin.Sup,[])
+        worker(NVim.Plugin.Sup,[]),
+        worker(__MODULE__,[], function: :gen_api, restart: :temporary)
       ], strategy: :one_for_all)
     end
+
+    def gen_api, do: (NVim.Api.from_instance; :ignore)
   end
 end
 
