@@ -16,6 +16,7 @@ alias vim=nvim
 Compile the Elixir Host, then copy the vim-elixir-host directory to `~/.nvim` : 
 
 ```
+mix deps.get
 MIX_ENV=host mix escript.build
 cp -R vim-elixir-host/* ~/.nvim/
 # or with pathogen cp -R vim-elixir-host ~/.nvim/bundle/
