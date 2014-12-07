@@ -1,36 +1,3 @@
-defmodule NVim.App do
-  use Application
-  def start(_type, _args), do: 
-    NVim.App.Sup.start_link
-
-  defmodule Sup do
-    use Supervisor
-
-    def start_link, do: Supervisor.start_link(__MODULE__,[])
-
-    def init([]) do
-      supervise([
-        worker(NVim.Link,[Application.get_env(:neovim,:link,:stdio)]),
-        worker(NVim.Plugin.Sup,[])
-      ], strategy: :one_for_all)
-    end
-  end
-end
-
-defmodule NVim.Logger do
-  use GenEvent
-
-  def handle_event({level,_leader,{Logger,msg,_ts,_md}},state) do
-    clean_msg = msg |> to_string |> String.split("\n") |> hd |> String.replace("\"","\\\"")
-    NVim.vim_command ~s/echo "#{level}: #{clean_msg}"/
-    {:ok,state}
-  catch _, _ -> {:ok,state}
-  end
-
-  def handle_call({:configure,_opts},state), do:
-    {:ok,:ok,state}
-end
-
 defmodule NVim.Link do
   use GenServer
   require Logger
@@ -156,8 +123,4 @@ defmodule NVim.Link do
     end
     {socket,socket}
   end
-end
-
-defmodule Sleeper do
-  def main(_), do: :timer.sleep(:infinity)
 end
