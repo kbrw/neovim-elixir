@@ -36,7 +36,7 @@ defmodule NVim.Link do
 
   def handle_info({port,{:data,data}},%{reqs: reqs,buf: buf}=state) do
     data = buf<>data
-    case MessagePack.unpack_once(data) do
+    case MessagePack.unpack_once(data, ext: NVim.Ext) do
       {:ok,{[@msg_resp,req_id,err,resp],tail}}->
         reply = if err, do: {:error,err}, else: {:ok, resp}
         reqs = case Dict.pop(reqs,req_id) do
