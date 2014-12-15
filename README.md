@@ -44,7 +44,7 @@ defmodule AutoComplete do
 
   deffunc elixir_complete("1",_,%{"line"=>line,"cursor"=>cursor},state), cursor: "col('.')", line: "getline('.')" do
     cursor = cursor - 1 # because we are in insert mode
-    [tomatch] = Regex.run(~r"[\w\.]*$",String.slice(line,0..cursor-1))
+    [tomatch] = Regex.run(~r"[\w\.:]*$",String.slice(line,0..cursor-1))
     cursor - String.length(tomatch)
   end
   deffunc elixir_complete(_,base,_,state), cursor: "col('.')", line: "getline('.')" do
