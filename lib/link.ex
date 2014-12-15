@@ -19,7 +19,7 @@ defmodule NVim.Link do
 
   def handle_call({func,args},from,%{port: port}=state) do
     req_id = state.req_id+1
-    Port.command port, MessagePack.pack!([@msg_req,req_id,func,args])
+    Port.command port, MessagePack.pack!([@msg_req,req_id,func,args], ext: NVim.Ext)
     {:noreply,%{state|req_id: req_id, reqs: Dict.put(state.reqs,req_id,from)}}
   end
   def handle_cast({:register_plugins,plugins},state) do
