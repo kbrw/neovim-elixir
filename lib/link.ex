@@ -34,49 +34,56 @@ defmodule NVim.Link do
   end
   defp reply(port,id,res), do: reply(port,id,{:ok,res})
 
-  def handle_info({port,{:data,data}},%{reqs: reqs,buf: buf}=state) do
-    data = buf<>data
+  def parse_msgs(data,acc) do
     case MessagePack.unpack_once(data, ext: NVim.Ext) do
-      {:ok,{[@msg_resp,req_id,err,resp],tail}}->
+      {:ok,{msg,tail}}->parse_msgs(tail,[msg|acc])
+      {:error,_}->{data,Enum.reverse(acc)}
+    end
+  end
+
+  def handle_info({port,{:data,data}},%{reqs: reqs,buf: buf,plugins: plugins}=state) do
+    {tail,msgs} = parse_msgs(buf<>data,[])
+    {reqs,plugins} = Enum.reduce(msgs,{reqs,plugins},fn 
+      [@msg_resp,req_id,err,resp], {reqs,plugins}->
         reply = if err, do: {:error,err}, else: {:ok, resp}
-        reqs = case Dict.pop(reqs,req_id) do
+        reqs=case Dict.pop(reqs,req_id) do
           {nil,_} -> reqs
           {reply_to,reqs} -> GenServer.reply(reply_to,reply); reqs
         end
-        {:noreply,%{state|buf: tail, reqs: reqs}}
-      {:ok,{[@msg_req,req_id,method,args],tail}}->
+        {reqs,plugins}
+      [@msg_req,req_id,method,args], {_,plugins}=acc->
         spawn fn->
           try do
             case String.split(method,":") do
-              ["poll"]-> 
-                reply port,req_id, {:ok,"ok"}
+              ["poll"]-> reply(port,req_id, {:ok,"ok"})
               ["specs"]->
-                {plugin,plugins} = NVim.Host.ensure_plugin(hd(args),state.plugins)
+                {plugin,plugins} = NVim.Host.ensure_plugin(hd(args),plugins)
                 reply port,req_id, {:ok,NVim.Host.specs(plugin)}
                 GenServer.cast __MODULE__,{:register_plugins,plugins}
               [path|methodpath]->
-                {plugin,plugins} = NVim.Host.ensure_plugin(path,state.plugins)
+                {plugin,plugins} = NVim.Host.ensure_plugin(path,plugins)
                 GenServer.cast __MODULE__,{:register_plugins,plugins}
-                reply port,req_id, NVim.Host.handle(plugin,methodpath,args)
+                r = NVim.Host.handle(plugin,methodpath,args)
+                reply port,req_id, r
             end
           catch _, r -> 
             reply port,req_id, {:error,inspect(r)}
           end
         end
-        {:noreply,%{state|buf: tail}}
-      {:ok,{[@msg_notify,method,args],tail}}->
+        acc
+      [@msg_notify,method,args], {reqs,plugins}->
         [path|methodpath] = String.split(method,":")
-        {plugin,plugins} = NVim.Host.ensure_plugin(path,state.plugins)
-          spawn fn->
-            try do 
-              NVim.Host.handle(plugin,methodpath,args)
-            catch _, r -> 
-              Logger.error "failed to exec autocmd #{hd(methodpath)} : #{inspect r}" 
-            end
+        {plugin,plugins} = NVim.Host.ensure_plugin(path,plugins)
+        spawn fn->
+          try do 
+            NVim.Host.handle(plugin,methodpath,args)
+          catch _, r -> 
+            Logger.error "failed to exec autocmd #{hd(methodpath)} : #{inspect r}"
           end
-          {:noreply,%{state|buf: tail,plugins: plugins}}
-          {:error,_}->{:noreply,%{state|buf: data}}
         end
+        {reqs,plugins}
+    end)
+    {:noreply,%{state|buf: tail, reqs: reqs, plugins: plugins}}
   end
   def handle_info({:EXIT,port,_},%{port: port,link_spec: :stdio}=state) do
     System.halt(0) # if the port die in stdio mode, it means the link is broken, kill the app
