@@ -34,9 +34,7 @@ defmodule NVim.Api do
         """
         Module.eval_quoted(NVim, quote do
           def unquote(:"#{name}")(unquote_splicing(fnparams)) do
-            GenServer.call NVim.Link, {unquote("#{name}"),unquote(fnparams)}
-          catch
-            :exit,{:timeout,_}-> {:error,"#{unquote(name)} timeout"}
+            GenServer.call NVim.Link, {unquote("#{name}"),unquote(fnparams)}, :infinity
           end
         end)
       end

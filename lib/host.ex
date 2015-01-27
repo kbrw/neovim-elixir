@@ -18,7 +18,7 @@ defmodule NVim.Host do
   def compose_name([simple_name]), do: simple_name
   def compose_name(composed_name), do: List.to_tuple(composed_name)
   def handle(plugin,[type|name],args), do:
-    GenServer.call(plugin,{:"#{type}",compose_name(name),args})
+    GenServer.call(plugin,{:"#{type}",compose_name(name),args}, :infinity)
 end
 
 defmodule NVim.Plugin.Sup do
