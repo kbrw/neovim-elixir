@@ -31,7 +31,8 @@ NVim project (need to open an issue and do lobbying).
 ## Write a vim Elixir plugin ##
 
 Before going into a detail, let's see a basic usage example : add
-Elixir autocompletion to vim... in 5 minutes.
+Elixir autocompletion for module and functions, with documentation in
+the preview window, in less than 40 LOC.
 
 ```
 mkdir -p ~/.nvim/rplugin/elixir
@@ -49,14 +50,28 @@ defmodule AutoComplete do
   end
   deffunc elixir_complete(_,base,_,state), cursor: "col('.')", line: "getline('.')" do
     case (base |> to_char_list |> Enum.reverse |> IEx.Autocomplete.expand) do
-      {:yes,one,alts}-> 
-        Enum.map([one|alts],fn comp->
-          comp = "#{base}#{comp}"
-          %{"word"=>String.replace(comp,~r"/[0-9]+$",""),
-            "abbr"=>comp,
-            "info"=>"take doc from @doc"}
+      {:no,_,_}-> [base] # no expand
+      {:yes,comp,[]}->["#{base}#{comp}"] #simple expand, no choices
+      {:yes,_,alts}-> # multiple choices
+        Enum.map(alts,fn comp->
+          {base,comp} = {String.replace(base,~r"[^.]*$",""), to_string(comp)}
+          case Regex.run(~r"^(.*)/([0-9]+)$",comp) do # first see if these choices are module or function
+            [_,function,arity]-> # it is a function completion
+              replace = base<>function
+              module = if String.last(base) == ".", do: Module.concat([String.slice(base,0..-2)]), else: Kernel
+              if (docs=Code.get_docs(module,:docs)) && (doc=List.keyfind(docs,{:"#{function}",elem(Integer.parse(arity),0)},0)) do
+                 %{"word"=>replace,"kind"=> if(elem(doc,2)==:def, do: "f", else: "m"), "abbr"=>comp,"info"=>elem(doc,4)}
+              else
+                %{"word"=>replace,"abbr"=>comp}
+              end
+            nil-> # it is a module completion
+              module = base<>comp
+              case Code.get_docs(Module.concat([module]),:moduledoc) do
+                {_,moduledoc} -> %{"word"=>module,"info"=>moduledoc}
+                _ -> %{"word"=>module}
+              end
+          end
         end)
-      {:no,_,_}-> [base]
     end
   end
 
