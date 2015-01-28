@@ -1,5 +1,4 @@
 /_build
 /deps
-/vim-elixir-host/tools/nvim_elixir_host
 erl_crash.dump
 *.ez

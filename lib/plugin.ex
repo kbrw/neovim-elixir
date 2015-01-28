@@ -32,10 +32,8 @@ defmodule NVim.Plugin do
 
   def wrap_reply({status,reply,state},_,_) when status in [:ok,:error], do:
     {:reply,{status,reply},state}
-  def wrap_reply(other,initstate,true), do:
+  def wrap_reply(other,initstate,_), do:
     {:reply,{:ok,other},initstate}
-  def wrap_reply(other,_,false), do:
-    {:reply,{:ok,nil},other}
 
   def params_to_eval(params) do
     map = params
@@ -68,7 +66,7 @@ defmodule NVim.Plugin do
                   sync: unquote(if(funcparams[:async], do: 0,else: 1)),
                   opts: %{unquote_splicing(if eval_specs == [],do: [], else: [eval: params_to_eval(eval_specs)])}
                 }))
-      def handle_call({:function,unquote(name),unquote(call_args)},var!(from),unquote(state)=initialstate) when unquote(guard) do
+      def handle_call({:function,unquote(name),unquote(call_args)},var!(_from),unquote(state)=initialstate) when unquote(guard) do
         wrap_reply(unquote(body),initialstate,unquote(funcparams[:async] in [nil,false]))
       end
     end
