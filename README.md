@@ -15,6 +15,7 @@ Then you can either directly use my own branch of `vim-elixir` which includes th
 
 ```
 git clone -b nvim-rplugin https://github.com/awetzel/vim-elixir
+cp -R vim-elixir/* ~/.nvim/
 ```
 
 Or compile it manually with the next section and develop your own plugin.
