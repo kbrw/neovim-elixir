@@ -11,6 +11,14 @@ cp -R ~/.vim ~/.nvim ; cp ~/.vimrc ~/.nvimrc
 alias vim=nvim
 ```
 
+Then you can either directly use my own branch of `vim-elixir` which includes the elixir host and a plugin for autocompletion, live elixir interpreter in vim and application execution in vim 
+
+```
+git clone -b nvim-rplugin https://github.com/awetzel/vim-elixir
+```
+
+Or compile it manually with the next section and develop your own plugin.
+
 ## INSTALL ##
 
 Compile the Elixir Host, then copy the vim-elixir-host directory to `~/.nvim` : 
