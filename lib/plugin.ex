@@ -97,8 +97,14 @@ defmodule NVim.Plugin do
       special = special_dict |> Enum.sort_by(fn {k,_}->arg_order[k] end) |> Dict.values
       {special,params}
     end
-    nargs_args = if params == [], do: [], else: [Enum.reverse(params)]
+    {nargs_args,defaults} = if params == [] do {[],[]} else
+      with_defaults = Enum.reverse(params)
+      without_defaults = Enum.map(with_defaults, fn {:\\,_,[e,_]}->e; e->e end)
+      defaults = Enum.map(with_defaults,fn {:\\,_,[_,default]}->default; _->nil end)
+      {[without_defaults],defaults}
+    end
     call_args = Enum.concat([nargs_args,special_args,eval_args])
+    default_call_args = Enum.concat([[quote do: _],special_args,eval_args])
     name = Mix.Utils.camelize("#{name}")
     quote do
       @specs if(@specs[unquote(name)], do: @specs, else:
@@ -114,6 +120,12 @@ defmodule NVim.Plugin do
                 }))
       def handle_call({:command,unquote(name),unquote(call_args)},var!(from),unquote(state)=initialstate)  when unquote(guard)  do
         wrap_reply(unquote(body),initialstate,unquote(funcparams[:async] in [nil,false]))
+      end
+      if unquote(nargs_args !== []) do
+        def handle_call({:command,unquote(name),unquote(default_call_args)=[nargs|other_args]},from,unquote(state)=initialstate)  when unquote(guard)  do
+          nargs = nargs ++ Enum.slice(unquote(defaults),length(nargs)..-1)
+          handle_call({:command,unquote(name),[nargs|other_args]},from,initialstate)
+        end
       end
     end
   end
