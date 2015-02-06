@@ -3,7 +3,7 @@ defmodule NVim.Mixfile do
 
   def project do
     [app: :neovim,
-     version: "0.1.0",
+     version: "0.1.1",
      consolidate_protocols: false,
      elixir: "~> 1.0",
      escript: escript,

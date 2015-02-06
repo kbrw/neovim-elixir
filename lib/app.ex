@@ -1,7 +1,15 @@
 defmodule NVim.App do
   use Application
-  def start(_type, _args), do: 
+  def start(_type, _args) do
+    ## Make sure that the IO server of this application and all launched applications
+    ## is a sink ignoring messages, to ensure that standard input/output will
+    ## not be taken by running code and make the neovim host die
+    io_sink = IOLeaderSink.start_link
+    Process.group_leader(self,io_sink)
+    Process.group_leader(Process.whereis(:application_controller),io_sink)
+
     NVim.App.Sup.start_link
+  end
 
   defmodule Sup do
     use Supervisor
@@ -51,3 +59,30 @@ defmodule Mix.Tasks.Nvim.Attach do
   end
 end
 
+defmodule IOLeaderSink do
+  def handle(from,reply_as,{:put_chars,_,_}), do:
+    send(from,{:io_reply,reply_as,:ok})
+  def handle(from,reply_as,{:put_chars,_,_,_,_}), do:
+    send(from,{:io_reply,reply_as,:ok})
+  def handle(from,reply_as,{:get_until,_,_,_,_,_}), do:
+    send(from,{:io_reply,reply_as,{:done,:eof,[]}})
+  def handle(from,reply_as,{:get_chars,_,_,_}), do:
+    send(from,{:io_reply,reply_as,:eof})
+  def handle(from,reply_as,{:get_line,_,_}), do:
+    send(from,{:io_reply,reply_as,:eof})
+  def handle(from,reply_as,{:setopts,_}), do:
+    send(from,{:io_reply,reply_as,:ok})
+  def handle(from,reply_as,:getopts), do:
+    send(from,{:io_reply,reply_as,[]})
+  def handle(from,reply_as,{:requests,requests}), do:
+    for(r<-requests, do: handle(from,reply_as,r))
+  def handle(from,reply_as,_), do:
+    send(from,{:io_reply,reply_as,{:error,:request}})
+  def loop do
+    receive do 
+      {:io_request,from,reply_as,req}-> handle(from,reply_as,req)
+      _->:ok 
+    end; loop
+  end
+  def start_link, do: spawn_link(__MODULE__,:loop,[])
+end
