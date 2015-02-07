@@ -17,6 +17,9 @@ defmodule NVim.Plugin do
 
   defmacro __before_compile__(_env) do
     quote do
+      def handle_call({type,name,_},_,state) do
+        {:reply,{:error,"no matching arguments for #{type} #{inspect name}"},state}
+      end
       def nvim_specs, do: Dict.values(@specs)
     end
   end
