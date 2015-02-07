@@ -8,7 +8,9 @@ defmodule NVim.App do
     Process.group_leader(self,io_sink)
     Process.group_leader(Process.whereis(:application_controller),io_sink)
 
-    NVim.App.Sup.start_link
+    unquote(if Mix.env !== :test,
+      do: quote(do: NVim.App.Sup.start_link),
+      else: quote(do: {:ok,spawn fn->:ok end}))
   end
 
   defmodule Sup do
