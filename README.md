@@ -52,12 +52,12 @@ vim ~/.nvim/rplugin/elixir/completion.ex
 defmodule AutoComplete do
   use NVim.Plugin
 
-  deffunc elixir_complete("1",_,%{"line"=>line,"cursor"=>cursor},state), cursor: "col('.')", line: "getline('.')" do
+  deffunc elixir_complete("1",_,cursor,line,state), eval: "col('.')", eval: "getline('.')" do
     cursor = cursor - 1 # because we are in insert mode
     [tomatch] = Regex.run(~r"[\w\.:]*$",String.slice(line,0..cursor-1))
     cursor - String.length(tomatch)
   end
-  deffunc elixir_complete(_,base,_,state), cursor: "col('.')", line: "getline('.')" do
+  deffunc elixir_complete(_,base,_,_,state), eval: "col('.')", eval: "getline('.')" do
     case (base |> to_char_list |> Enum.reverse |> IEx.Autocomplete.expand) do
       {:no,_,_}-> [base] # no expand
       {:yes,comp,[]}->["#{base}#{comp}"] #simple expand, no choices
@@ -68,8 +68,8 @@ defmodule AutoComplete do
             [_,function,arity]-> # it is a function completion
               replace = base<>function
               module = if String.last(base) == ".", do: Module.concat([String.slice(base,0..-2)]), else: Kernel
-              if (docs=Code.get_docs(module,:docs)) && (doc=List.keyfind(docs,{:"#{function}",elem(Integer.parse(arity),0)},0)) do
-                 %{"word"=>replace,"kind"=> if(elem(doc,2)==:def, do: "f", else: "m"), "abbr"=>comp,"info"=>elem(doc,4)}
+              if (docs=Code.get_docs(module,:docs)) && (doc=List.keyfind(docs,{:"#{function}",elem(Integer.parse(arity),0)},0)) && (docmd=elem(doc,4)) do
+                 %{"word"=>replace,"kind"=> if(elem(doc,2)==:def, do: "f", else: "m"), "abbr"=>comp,"info"=>docmd}
               else
                 %{"word"=>replace,"abbr"=>comp}
               end
