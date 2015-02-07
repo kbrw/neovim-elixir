@@ -66,7 +66,7 @@ defmodule NVim.Plugin do
                   sync: unquote(if(funcparams[:async], do: 0,else: 1)),
                   opts: %{unquote_splicing(if eval_specs == [],do: [], else: [eval: params_to_eval(eval_specs)])}
                 }))
-      def handle_call({:function,unquote(name),unquote(call_args)},var!(_from),unquote(state)=initialstate) when unquote(guard) do
+      def handle_call({:function,unquote(name),unquote(call_args)},var!(nvim_from),unquote(state)=initialstate) when unquote(guard) do
         wrap_reply(unquote(body),initialstate,unquote(funcparams[:async] in [nil,false]))
       end
     end
@@ -118,7 +118,7 @@ defmodule NVim.Plugin do
                       if(eval_specs == [], do: [], else: [eval: params_to_eval(eval_specs)])
                     )}
                 }))
-      def handle_call({:command,unquote(name),unquote(call_args)},var!(from),unquote(state)=initialstate)  when unquote(guard)  do
+      def handle_call({:command,unquote(name),unquote(call_args)},var!(nvim_from),unquote(state)=initialstate)  when unquote(guard)  do
         wrap_reply(unquote(body),initialstate,unquote(funcparams[:async] in [nil,false]))
       end
       if unquote(nargs_args !== []) do
@@ -149,7 +149,7 @@ defmodule NVim.Plugin do
                       if(eval_specs == [],do: [], else: [eval: params_to_eval(eval_specs)])
                     )}
                 }))
-      def handle_call({:autocmd,{unquote(name),unquote(pattern)},unquote(call_args)},var!(from),unquote(state)=initialstate) when unquote(guard) do
+      def handle_call({:autocmd,{unquote(name),unquote(pattern)},unquote(call_args)},var!(nvim_from),unquote(state)=initialstate) when unquote(guard) do
         wrap_reply(unquote(body),initialstate,unquote(funcparams[:async] in [nil,false]))
       end
     end
