@@ -31,11 +31,7 @@ cp -R vim-elixir-host/* ~/.nvim/
 # or with pathogen cp -R vim-elixir-host ~/.nvim/bundle/
 ```
 
-That's it ! But actually because of a hack ! The folder contains
-`autoload/remote/host.vim` which overrides the one from the
-mainstream runtime to add 5 lines to accept Elixir plugins. This
-is a hack before we integrate the elixir host into the mainstream
-NVim project (need to open an issue and do lobbying).
+That's it ! 
 
 ## Write a vim Elixir plugin ##
 
