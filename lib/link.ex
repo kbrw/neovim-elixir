@@ -35,7 +35,7 @@ defmodule NVim.Link do
   defp reply(port,id,res), do: reply(port,id,{:ok,res})
 
   def parse_msgs(data,acc) do
-    case MessagePack.unpack_once(data, ext: NVim.Ext) do
+    case MessagePack.unpack_once(data, enable_string: true, ext: NVim.Ext) do
       {:ok,{msg,tail}}->parse_msgs(tail,[msg|acc])
       {:error,_}->{data,Enum.reverse(acc)}
     end
