@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :logger,
-  backends: [if(Mix.env==:host, do: NVim.Logger, else: Logger.Backends.Console)],
+  backends: [if(Mix.env==:host, do: NVim.Logger, else: :console)],
   level: :debug,
   handle_otp_reports: true,
   handle_sasl_reports: true
