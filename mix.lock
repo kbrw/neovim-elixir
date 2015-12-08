@@ -1,2 +1,2 @@
-%{"message_pack": {:git, "git://github.com/awetzel/msgpack-elixir.git", "1fd6cebc501a77754e409e39b9b78648e13127c4", [branch: "unpack_map_as_map"]},
-  "procket": {:git, "git://github.com/msantos/procket.git", "eddc2d965f9b14abd06677cb2d1cf9c2ee9759ee", []}}
+%{"message_pack": {:git, "https://github.com/awetzel/msgpack-elixir.git", "1fd6cebc501a77754e409e39b9b78648e13127c4", [branch: "unpack_map_as_map"]},
+  "procket": {:git, "https://github.com/msantos/procket.git", "eddc2d965f9b14abd06677cb2d1cf9c2ee9759ee", []}}
