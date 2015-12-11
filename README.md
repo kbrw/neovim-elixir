@@ -33,6 +33,9 @@ cp -R vim-elixir-host/* ~/.nvim/
 
 That's it ! 
 
+You can also use `MIX_ENV=debug_host` to compile a host plugin which
+logs into a `./nvim_debug` file and set log level to `:debug` (see below).
+
 ## Write a vim Elixir plugin ##
 
 Before going into a detail, let's see a basic usage example : add
@@ -170,10 +173,17 @@ Todo
 
 Todo
 
-## Elixir logs are "echoed" to vim ##
+## Debugging and Logger
 
-The `NVim.Logger` logger backend take the first line of a log and `echo` it
-to vim.
+Standard output and input of the neovim host are used to communicate with vim, so
+to avoid any freeze, the erlang `group_leader` (pid where io outputs are send
+through a protocol), is set to a *sink*, so all outputs are ignored.
+
+To allow some debugging and feed back from your plugin, two `Logger` backends
+are provided:
+
+- `NVim.Logger` takes the first line of a log and `echo` it to vim.
+- `NVim.DebugLogger` append log to a "./nvim_debug" file (configurable with `:debug_logger_file` env)
 
 # Control a nvim instance from Elixir #
 
