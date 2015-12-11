@@ -7,7 +7,7 @@ Firstly, to replace your vim with nvim, not so hard :)
 
 ```
 git clone https://github.com/neovim/neovim ; cd neovim ; sudo make install
-cp -R ~/.vim ~/.nvim ; cp ~/.vimrc ~/.nvimrc
+cp -R ~/.vim ~/.config/nvim ; cp ~/.vimrc ~/.config/nvim/init.vim
 alias vim=nvim
 ```
 
@@ -95,14 +95,33 @@ And then open nvim and execute `:UpdateRemotePlugins` to update the plugin datab
 
 That's it, just open an elixir file and "CTRL-X CTRL-O" for completion. 
 
+## Write a compiled vim Elixir plugin 
+
+Create any OTP app with a *plugin_module* (as described below) inside it.
+Then create an erlang archive and put it into your `rplugin/elixir` directory.
+
+```bash
+mix new myplugin
+cd myplugin
+vim lib/myplugin.ex
+# write your plugin module, like the AutoComplete module below
+mix archive.build
+cp myplugin-0.0.1.ez ~/.config/nvim/rplugin/elixir/
+```
+
 ## Plugin architecture ##
 
 But the integration allows much more things, lets look into
 details : 
 
-- A plugin is an elixir file defining modules in
-  `RUNTIMEPATH/rplugin/elixir`, but only one module must implement
-  the `nvim_specs` function, it is called the _plugin module_
+- A plugin is either:
+    - an elixir file defining modules in `RUNTIMEPATH/rplugin/elixir`,
+      but only one module must implement the `nvim_specs` function,
+      it is called the _plugin module_
+    - an archive `someapp.ez` in `RUNTIMEPATH/rplugin/elixir`
+      containing an otp app, inside it there must be one and only one
+      module implementing the `nvim_specs` function, it is called the
+      _plugin module_
 - The _plugin module_ must implement `child_spec/0` returning the
   supervisor child specification started on the first plugin call.
 - The supervision tree must launch in it a GenServer registered
@@ -122,10 +141,22 @@ you can see this architecture :
   def ensure_plugin(path,plugins) do
     case plugins[path] do
       nil -> 
-        modules = Code.compile_string(File.read!(path),path)
-        {plugin,_} = Enum.find(modules,fn {mod,_}->
-          function_exported?(mod,:nvim_specs,0)
-        end)
+        plugin = case Path.extname(path) do
+          ".ex"->
+            modules = Code.compile_string(File.read!(path),path) |> Enum.map(&elem(&1,0))
+            Enum.find(modules,&function_exported?(&1,:nvim_specs,0))
+          ".ez"->
+            app_version = path |> Path.basename |> Path.rootname
+            app =  app_version |> String.replace(~r/-([0-9]+\.?)+/,"") |> String.to_atom
+            Code.append_path("#{path}/#{app_version}/ebin")
+            res = Application.ensure_all_started(app)
+            {:ok,modules} = :application.get_key(app,:modules)
+            Enum.each(modules,&Code.ensure_loaded/1)
+            plug = Enum.find(modules,&function_exported?(&1,:nvim_specs,0))
+            Application.get_env(app,:nvim_plugin) || (
+              {:ok,modules} = :application.get_key(app,:modules)
+              Enum.find(modules,&function_exported?(&1,:nvim_specs,0)))
+        end
         {:ok,_} = Supervisor.start_child NVim.Plugin.Sup, plugin.child_spec
         {plugin,Dict.put(plugins,path,plugin)}
       plugin -> {plugin,plugins}

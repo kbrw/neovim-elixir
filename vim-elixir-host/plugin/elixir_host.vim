@@ -7,7 +7,7 @@ function! s:RequireElixirHost(host)
   catch
   endtry
   throw 'Failed to load elixir host.' .
-    \ " Maybe Erlang > 17.0 is missing"
+    \ " Maybe Erlang is missing"
 endfunction
 
-call remote#host#Register('elixir', '*.ex', function('s:RequireElixirHost'))
+call remote#host#Register('elixir', '*.e[zx]', function('s:RequireElixirHost'))
