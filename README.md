@@ -152,7 +152,6 @@ you can see this architecture :
             res = Application.ensure_all_started(app)
             {:ok,modules} = :application.get_key(app,:modules)
             Enum.each(modules,&Code.ensure_loaded/1)
-            plug = Enum.find(modules,&function_exported?(&1,:nvim_specs,0))
             Application.get_env(app,:nvim_plugin) || (
               {:ok,modules} = :application.get_key(app,:modules)
               Enum.find(modules,&function_exported?(&1,:nvim_specs,0)))
