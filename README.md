@@ -2,7 +2,7 @@ Elixir host for NVim
 ====================
 
 Instead of this repository, you can directly use
-https://github.com/awetzel/elixir.nvim, which allows you to compile this host,
+https://github.com/awetzel/elixir.nvim, which packages this host,
 a vim plugin with useful functions `awetzel/nvim-rplugin`, and
 add some vim configuration.
 
