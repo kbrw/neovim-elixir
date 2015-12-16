@@ -1,26 +1,23 @@
 Elixir host for NVim
 ====================
 
+Instead of this repository, you can directly use
+https://github.com/awetzel/elixir.nvim, which allows you to compile this host,
+a vim plugin with useful functions `awetzel/nvim-rplugin`, and
+add some vim configuration.
+
 # Write your Vim plugin in Elixir : Elixir Host for NVim #
 
 Firstly, to replace your vim with nvim, not so hard :)
 
 ```
 git clone https://github.com/neovim/neovim ; cd neovim ; sudo make install
+# add-apt-repository ppa:neovim-ppa/unstable && apt-get update && apt-get install neovimapt-get install
 cp -R ~/.vim ~/.config/nvim ; cp ~/.vimrc ~/.config/nvim/init.vim
 alias vim=nvim
 ```
 
-Then you can either directly use [my own branch of `vim-elixir`](https://github.com/awetzel/vim-elixir/tree/nvim-rplugin) which includes the elixir host and a plugin for autocompletion, live elixir interpreter in vim and application execution in vim 
-
-```
-git clone -b nvim-rplugin https://github.com/awetzel/vim-elixir
-cp -R vim-elixir/* ~/.nvim/
-```
-
-Or compile it manually with the next section and develop your own plugin.
-
-## INSTALL ##
+## INSTALL this host ##
 
 Compile the Elixir Host, then copy the vim-elixir-host directory to `~/.nvim` : 
 
