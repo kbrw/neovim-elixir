@@ -2,7 +2,7 @@ defmodule NVim.Logger do
   use GenEvent
 
   def handle_event({level,_leader,{Logger,msg,_ts,_md}},:activated) do
-    NVim.vim_command ~s/echo "#{level}: #{clean_msg msg}"/
+    NVim.vim_command ~s/echomsg "#{level}: #{clean_msg msg}"/
     {:ok,:activated}
   end
   def handle_event({_,_,{Logger,["Application ","neovim"," started at "|_],_,_}},_), do: {:ok,:activated}
