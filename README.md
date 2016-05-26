@@ -190,7 +190,61 @@ contains the _plugin module_ GenServer.
 
 ## Understand deffunc ##
 
-Todo
+The `deffunc` macro defines a neovim `function`.
+The syntax is as follows:
+```
+deffunc function_name(p1,p2,...,e1,e2,...,state)
+  when guard,
+  eval: expr1, eval: expr2, ...
+  async: [true|false]
+  do
+    body
+    new_state
+  end
+```
+Everything but the function name, the state parameter, and the function body
+are optional.
+
+* The function name is the name of the function that will be made available
+  to neovim, after it is camel-cased. If the function is named `my_func` in
+  Elixir, then in neovim it will be named `MyFunc`. This is done automatically.
+* The `p` parameters are the user-defined parameters, that is, the parameters
+  the user must provide when calling the function. They can have any valid
+  Elixir name.
+* The `e` parameters are parameters that will be automatically computed
+  from the `eval:` expressions. For example, if the first `eval:` expression
+  is `"col('.')"`, then `e1` will have the current column when the function
+  ins called. They can have any valid Elixir name.
+* Finally, the `state` parameter is the current state, which should be
+  updated (if necessary) and returned from the function.
+
+The division between `p` and `e` parameters is implicitly given by the
+number of `eval:` expressions specified.
+A few examples should make things clearer. We can start with a small function:
+```elixir
+deffunc woot_func(state) do
+  NVim.vim_command("echo \"woot\"")
+  state
+end
+```
+This will print `woot` when you `:call WootFunc()` in neovim. Let us now
+pass a parameter:
+```elixir
+deffunc echo_func(msg,state) do
+  Nvim.vim_command("echo '" <> msg <> "'")
+  state
+end
+```
+Calling it with `:call EchoFunc('oops')`, will result in `oops` being printed.
+Adding an automatically evaluated parameter:
+```elixir
+deffunc echo_func(msg,file_name,state), eval: "expand('%p:%h')" do
+  Nvim.vim_command("echo '" <> file_name <> ":" <> msg <> "'")
+  state
+end
+```
+Calling it with `:call EchoFunc('foo')` will print the current file name
+and `foo`.
 
 ## Understand defcommand ##
 
