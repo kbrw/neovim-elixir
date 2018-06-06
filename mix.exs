@@ -24,6 +24,7 @@ defmodule NVim.Mixfile do
   defp escript, do: [
     emu_args: "-noinput",
     path: "vim-elixir-host/tools/nvim_elixir_host",
+    strip_beam: false,
     main_module: Sleeper
   ]
   
