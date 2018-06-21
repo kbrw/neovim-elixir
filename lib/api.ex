@@ -19,10 +19,14 @@ defmodule NVim.Api do
     generate_neovim(spec)
   end
 
+  ## HACK TO ENSURE that Vim function name IS NOT a reserved elixir keyword
+  def map_vimname(:fn), do: :fun
+  def map_vimname(param), do: param
+
   def generate_neovim(%{"functions"=>fns,"types"=>types}) do
     defmodule Elixir.NVim do
       Enum.each fns, fn %{"name"=>name,"parameters"=>params}=func->
-        fnparams = for [_type,pname]<-params,do: quote(do: var!(unquote({:"#{pname}",[],Elixir})))
+        fnparams = for [_type,pname]<-params,do: quote(do: var!(unquote({NVim.Api.map_vimname(:"#{pname}"),[],Elixir})))
         @doc """
           Parameters : #{inspect params}
 
