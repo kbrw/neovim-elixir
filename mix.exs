@@ -6,8 +6,8 @@ defmodule NVim.Mixfile do
      version: "0.2.0",
      consolidate_protocols: false,
      elixir: "~> 1.0",
-     escript: escript,
-     deps: deps]
+     escript: escript(),
+     deps: deps()]
   end
 
   def application do
