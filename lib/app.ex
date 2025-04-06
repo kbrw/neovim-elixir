@@ -5,7 +5,7 @@ defmodule NVim.App do
     ## is a sink ignoring messages, to ensure that standard input/output will
     ## not be taken by running code and make the neovim host die
     io_sink = IOLeaderSink.start_link
-    Process.group_leader(self,io_sink)
+    Process.group_leader(self(),io_sink)
     Process.group_leader(Process.whereis(:application_controller),io_sink)
 
     unquote(if Mix.env !== :test,
