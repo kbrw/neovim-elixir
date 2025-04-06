@@ -84,7 +84,7 @@ defmodule IOLeaderSink do
     receive do 
       {:io_request,from,reply_as,req}-> handle(from,reply_as,req)
       _->:ok 
-    end; loop
+    end; loop()
   end
   def start_link, do: spawn_link(__MODULE__,:loop,[])
 end
